@@ -36,6 +36,10 @@ These layers are independent — for example `admin` mode with `KEYCLOAK_ALLOW_D
 
 **Admin** (`admin`): `delete_user`
 
+## Use with your MCP client
+
+Works with Claude Code, Claude Desktop, Cursor, OpenAI Codex CLI, Windsurf, VS Code (Copilot), and any other MCP client — see **[docs/CLIENTS.md](docs/CLIENTS.md)** for per-client setup.
+
 ## Install
 
 ```bash
@@ -78,6 +82,10 @@ npm run dev        # watch mode
 npm test           # unit tests for the security policy
 npm run typecheck
 ```
+
+## Publishing
+
+This server ships a [`server.json`](server.json) for the official MCP registry and an [`mcpName`](package.json) for npm ownership validation. See **[PUBLISHING.md](PUBLISHING.md)** for publishing to npm and listing on the MCP registry, Smithery, Glama, Cursor, and PulseMCP.
 
 ## License
 
