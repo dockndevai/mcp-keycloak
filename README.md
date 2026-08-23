@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/dockndevai/mcp-keycloak/actions/workflows/ci.yml/badge.svg)](https://github.com/dockndevai/mcp-keycloak/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![npm](https://img.shields.io/npm/v/@dockndevai/mcp-keycloak)](https://www.npmjs.com/package/@dockndevai/mcp-keycloak)
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for **Keycloak**. It lets an MCP-capable client (Claude Desktop, Claude Code, etc.) inspect and manage Keycloak realms, users, clients, roles, and groups — with security controlled entirely by flags.
 
@@ -36,44 +37,83 @@ These layers are independent — for example `admin` mode with `KEYCLOAK_ALLOW_D
 
 **Admin** (`admin`): `delete_user`
 
-## Use with your MCP client
+## Quickstart — add to your agent
 
-Works with Claude Code, Claude Desktop, Cursor, OpenAI Codex CLI, Windsurf, VS Code (Copilot), and any other MCP client — see **[docs/CLIENTS.md](docs/CLIENTS.md)** for per-client setup.
+Published on npm as [`@dockndevai/mcp-keycloak`](https://www.npmjs.com/package/@dockndevai/mcp-keycloak). No clone or build needed — your MCP client runs it on demand with `npx`. **Start in `read-only` mode**; see [`.env.example`](.env.example) for every variable and [docs/CLIENTS.md](docs/CLIENTS.md) for the full per-client guide.
 
-## Install
+**Claude Code** (CLI)
 
 ```bash
-npm install
-npm run build
+claude mcp add keycloak -e KEYCLOAK_URL="https://keycloak.example.com" -e KEYCLOAK_CLIENT_ID="admin-cli" -e KEYCLOAK_CLIENT_SECRET="your-secret" -e KEYCLOAK_MODE="read-only" -- npx -y @dockndevai/mcp-keycloak
 ```
 
-## Configure
-
-Copy `.env.example` and fill it in, or set the variables directly in your MCP client config. A confidential client with the `realm-management` roles you need is the recommended credential.
-
-## Run with Claude Desktop / Claude Code
-
-Add to your MCP client configuration (`claude_desktop_config.json` or via `claude mcp add`):
+**Claude Desktop · Cursor · Windsurf** — same block in `claude_desktop_config.json`, `.cursor/mcp.json`, or `~/.codeium/windsurf/mcp_config.json`:
 
 ```json
 {
   "mcpServers": {
     "keycloak": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-keycloak/dist/index.js"],
+      "command": "npx",
+      "args": [
+        "-y",
+        "@dockndevai/mcp-keycloak"
+      ],
       "env": {
         "KEYCLOAK_URL": "https://keycloak.example.com",
         "KEYCLOAK_CLIENT_ID": "admin-cli",
         "KEYCLOAK_CLIENT_SECRET": "your-secret",
-        "KEYCLOAK_MODE": "read-only",
-        "KEYCLOAK_REALM_ALLOWLIST": "app,customers"
+        "KEYCLOAK_MODE": "read-only"
       }
     }
   }
 }
 ```
 
-Bump `KEYCLOAK_MODE` to `read-write` (and, for deletes, `admin` + `KEYCLOAK_ALLOW_DELETE=true`) only when you intend to let the model make changes.
+**OpenAI Codex CLI** — in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.keycloak]
+command = "npx"
+args = ["-y", "@dockndevai/mcp-keycloak"]
+env = { KEYCLOAK_URL = "https://keycloak.example.com", KEYCLOAK_CLIENT_ID = "admin-cli", KEYCLOAK_CLIENT_SECRET = "your-secret", KEYCLOAK_MODE = "read-only" }
+```
+
+**VS Code (GitHub Copilot, Agent mode)** — in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "keycloak": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@dockndevai/mcp-keycloak"
+      ],
+      "env": {
+        "KEYCLOAK_URL": "https://keycloak.example.com",
+        "KEYCLOAK_CLIENT_ID": "admin-cli",
+        "KEYCLOAK_CLIENT_SECRET": "your-secret",
+        "KEYCLOAK_MODE": "read-only"
+      }
+    }
+  }
+}
+```
+
+## Configure
+
+Copy `.env.example` and fill it in, or set the variables directly in your MCP client config. A confidential client with the `realm-management` roles you need is the recommended credential.
+
+## Run from source (development)
+
+Prefer the published package above. To run from a clone:
+
+```bash
+npm install
+npm run build
+node dist/index.js   # with the environment variables set
+```
 
 ## Develop
 
