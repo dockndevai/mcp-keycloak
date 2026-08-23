@@ -1,46 +1,45 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.dockndevai/mcp-keycloak",
-  "description": "Model Context Protocol server for Keycloak — multi-realm admin access with security modes and access-control flags.",
-  "status": "active",
+  "description": "Keycloak admin for AI agents — realms, users, clients, roles; safe-by-default governance.",
+  "version": "0.1.0",
   "repository": {
     "url": "https://github.com/dockndevai/mcp-keycloak",
     "source": "github"
   },
-  "version": "0.1.0",
   "packages": [
     {
-      "registry_type": "npm",
-      "registry_base_url": "https://registry.npmjs.org",
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@dockndevai/mcp-keycloak",
       "version": "0.1.0",
       "transport": {
         "type": "stdio"
       },
-      "environment_variables": [
+      "environmentVariables": [
         {
           "name": "KEYCLOAK_URL",
           "description": "Base URL of the Keycloak server (no trailing slash).",
-          "is_required": true,
-          "is_secret": false
+          "isRequired": true,
+          "isSecret": false
         },
         {
           "name": "KEYCLOAK_CLIENT_ID",
           "description": "Client id used to authenticate (default admin-cli).",
-          "is_required": false,
-          "is_secret": false
+          "isRequired": false,
+          "isSecret": false
         },
         {
           "name": "KEYCLOAK_CLIENT_SECRET",
           "description": "Service-account client secret (or use KEYCLOAK_USERNAME/PASSWORD).",
-          "is_required": false,
-          "is_secret": true
+          "isRequired": false,
+          "isSecret": true
         },
         {
           "name": "KEYCLOAK_MODE",
           "description": "Access mode: read-only | read-write | admin.",
-          "is_required": false,
-          "is_secret": false
+          "isRequired": false,
+          "isSecret": false
         }
       ]
     }
