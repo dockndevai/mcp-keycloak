@@ -6,12 +6,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ankitcs17071993/mcp-keycloak.git"
+    "url": "git+https://github.com/dockndevai/mcp-keycloak.git"
   },
   "bugs": {
-    "url": "https://github.com/ankitcs17071993/mcp-keycloak/issues"
+    "url": "https://github.com/dockndevai/mcp-keycloak/issues"
   },
-  "homepage": "https://github.com/ankitcs17071993/mcp-keycloak#readme",
+  "homepage": "https://github.com/dockndevai/mcp-keycloak#readme",
   "bin": {
     "mcp-keycloak": "dist/index.js"
   },

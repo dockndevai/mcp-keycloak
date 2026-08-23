@@ -1,6 +1,6 @@
 # mcp-keycloak
 
-[![CI](https://github.com/ankitcs17071993/mcp-keycloak/actions/workflows/ci.yml/badge.svg)](https://github.com/ankitcs17071993/mcp-keycloak/actions/workflows/ci.yml)
+[![CI](https://github.com/dockndevai/mcp-keycloak/actions/workflows/ci.yml/badge.svg)](https://github.com/dockndevai/mcp-keycloak/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for **Keycloak**. It lets an MCP-capable client (Claude Desktop, Claude Code, etc.) inspect and manage Keycloak realms, users, clients, roles, and groups — with security controlled entirely by flags.
