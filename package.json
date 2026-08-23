@@ -4,6 +4,14 @@
   "description": "Model Context Protocol server for Keycloak — multi-realm admin access with security modes and access-control flags.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ankitcs17071993/mcp-keycloak.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ankitcs17071993/mcp-keycloak/issues"
+  },
+  "homepage": "https://github.com/ankitcs17071993/mcp-keycloak#readme",
   "bin": {
     "mcp-keycloak": "dist/index.js"
   },
