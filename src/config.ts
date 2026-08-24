@@ -54,7 +54,12 @@ function parseMode(): AccessMode {
 }
 
 export function loadConfig(): AppConfig {
-  const baseUrl = required("KEYCLOAK_URL").replace(/\/+$/, "");
+  // Fall back to placeholders so the server can start and advertise its tools
+  // (introspection) even without config; auth failures surface on first request.
+  const baseUrl = (process.env.KEYCLOAK_URL ?? "http://localhost:8080").replace(/\/+$/, "");
+  if (!process.env.KEYCLOAK_URL) {
+    process.stderr.write("[keycloak-mcp] WARNING: KEYCLOAK_URL not set; using http://localhost:8080.\n");
+  }
   const authRealm = process.env.KEYCLOAK_AUTH_REALM ?? "master";
 
   const clientId = process.env.KEYCLOAK_CLIENT_ID ?? "admin-cli";
@@ -68,10 +73,10 @@ export function loadConfig(): AppConfig {
   } else if (username && password) {
     auth = { kind: "password", clientId, username, password };
   } else {
-    throw new Error(
-      "No credentials provided. Set KEYCLOAK_CLIENT_SECRET (service account) " +
-        "or KEYCLOAK_USERNAME + KEYCLOAK_PASSWORD (admin user).",
+    process.stderr.write(
+      "[keycloak-mcp] WARNING: no credentials set (KEYCLOAK_CLIENT_SECRET or KEYCLOAK_USERNAME/PASSWORD); tool calls will fail until provided.\n",
     );
+    auth = { kind: "client_credentials", clientId, clientSecret: "" };
   }
 
   return {
