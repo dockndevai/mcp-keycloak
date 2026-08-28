@@ -1,7 +1,7 @@
 {
   "name": "@dockndevai/mcp-keycloak",
   "mcpName": "io.github.dockndevai/mcp-keycloak",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model Context Protocol server for Keycloak — multi-realm admin access with security modes and access-control flags.",
   "type": "module",
   "license": "MIT",
