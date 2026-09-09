@@ -37,14 +37,6 @@ function list(name: string): string[] {
     .filter(Boolean);
 }
 
-function required(name: string): string {
-  const v = process.env[name];
-  if (!v) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return v;
-}
-
 function parseMode(): AccessMode {
   const raw = (process.env.KEYCLOAK_MODE ?? "read-only").toLowerCase();
   if (raw === "read-only" || raw === "read-write" || raw === "admin") return raw;
