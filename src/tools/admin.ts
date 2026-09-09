@@ -20,7 +20,7 @@ export const adminTools: ToolDef[] = [
         userId: z.string().describe("Keycloak user id (UUID)"),
       },
     },
-    handler: async (args, { client, policy }) => {
+    handler: async (args, { client, policy, confirm }) => {
       const realm = args.realm as string;
       const userId = args.userId as string;
       const { dryRun } = policy.guard({
@@ -30,6 +30,8 @@ export const adminTools: ToolDef[] = [
         destructive: true,
       });
       if (dryRun) return textResult(`[dry-run] Would delete user ${userId} in '${realm}'.`);
+      const ok = await confirm.confirm({ action: "delete user", target: userId, details: { realm } });
+      if (!ok.approved) return textResult(`Deletion cancelled — ${ok.reason}.`);
       await client.deleteUser(realm, userId);
       return jsonResult({ deleted: true, realm, userId });
     },

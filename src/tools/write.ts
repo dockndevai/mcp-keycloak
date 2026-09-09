@@ -86,7 +86,7 @@ export const writeTools: ToolDef[] = [
           .describe("If true (default), user must change it at next login"),
       },
     },
-    handler: async (args, { client, policy }) => {
+    handler: async (args, { client, policy, confirm }) => {
       const realm = args.realm as string;
       const userId = args.userId as string;
       const temporary = (args.temporary as boolean | undefined) ?? true;
@@ -95,6 +95,8 @@ export const writeTools: ToolDef[] = [
         return textResult(
           `[dry-run] Would set a ${temporary ? "temporary" : "permanent"} password for user ${userId} in '${realm}'.`,
         );
+      const ok = await confirm.confirm({ action: "reset user password", target: userId, details: { realm } });
+      if (!ok.approved) return textResult(`Password reset cancelled — ${ok.reason}.`);
       await client.resetPassword(realm, userId, args.password as string, temporary);
       // Never echo the password back.
       return jsonResult({ passwordReset: true, realm, userId, temporary });
