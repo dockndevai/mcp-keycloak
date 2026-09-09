@@ -113,11 +113,13 @@ export const writeTools: ToolDef[] = [
         userId: z.string().describe("Keycloak user id (UUID)"),
       },
     },
-    handler: async (args, { client, policy }) => {
+    handler: async (args, { client, policy, confirm }) => {
       const realm = args.realm as string;
       const userId = args.userId as string;
       const { dryRun } = policy.guard({ tool: "logout_user", capability: "write", realm });
       if (dryRun) return textResult(`[dry-run] Would revoke all sessions for user ${userId} in '${realm}'.`);
+      const ok = await confirm.confirm({ action: "log user out of all sessions", target: userId, details: { realm } });
+      if (!ok.approved) return textResult(`Logout cancelled — ${ok.reason}.`);
       await client.logoutUser(realm, userId);
       return jsonResult({ loggedOut: true, realm, userId });
     },

@@ -26,6 +26,7 @@ The design goal is **safe by default**: it starts read-only, scopes to an allowl
 | Can it delete? | `KEYCLOAK_ALLOW_DELETE` | `false` | `delete_*` tools require this **and** admin mode. |
 | Preview without touching Keycloak | `KEYCLOAK_DRY_RUN` | `false` | Write/admin tools validate + log intent, then return without calling Keycloak. |
 | Audit trail | `KEYCLOAK_AUDIT_LOG` | `true` | Emits a JSON line to stderr per guarded operation (`ALLOW` / `DENY` / `DRY_RUN`). |
+| Interactive confirmation | *(automatic)* | — | Destructive & high-impact actions prompt the human to approve via MCP elicitation before running; clients without elicitation fall back to the `*_ALLOW_*` gate. |
 
 These layers are independent — for example `admin` mode with `KEYCLOAK_ALLOW_DELETE=false` can create and update users but cannot delete them.
 
