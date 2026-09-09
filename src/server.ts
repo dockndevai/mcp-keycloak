@@ -17,7 +17,7 @@ export function buildServer(config: AppConfig): { server: McpServer; enabled: st
 
   const server = new McpServer({
     name: "mcp-keycloak",
-    version: "0.1.2",
+    version: "0.1.3",
   });
 
   const enabled: string[] = [];
