@@ -16,7 +16,7 @@ export function buildServer(config: AppConfig): { server: McpServer; enabled: st
   const client = new KeycloakClient(config.connection);
   const server = new McpServer({
     name: "mcp-keycloak",
-    version: "0.2.1",
+    version: "0.2.2",
   });
   const ctx: ToolContext = { client, policy, confirm: makeConfirmer(server) };
 
