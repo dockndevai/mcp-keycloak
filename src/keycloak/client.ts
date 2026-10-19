@@ -216,4 +216,57 @@ export class KeycloakClient {
       `/realms/${encodeURIComponent(realm)}/users/${encodeURIComponent(id)}/logout`,
     );
   }
+
+  getUserSessions(realm: string, id: string) {
+    return this.request<Array<Record<string, unknown>>>(
+      "GET",
+      `/realms/${encodeURIComponent(realm)}/users/${encodeURIComponent(id)}/sessions`,
+    );
+  }
+
+  listEvents(
+    realm: string,
+    query: {
+      type?: string[];
+      client?: string;
+      user?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      first?: number;
+      max?: number;
+    },
+  ) {
+    const url = new URL(`${this.conn.baseUrl}/admin/realms/${encodeURIComponent(realm)}/events`);
+    for (const t of query.type ?? []) url.searchParams.append("type", t);
+    if (query.client) url.searchParams.set("client", query.client);
+    if (query.user) url.searchParams.set("user", query.user);
+    if (query.dateFrom) url.searchParams.set("dateFrom", query.dateFrom);
+    if (query.dateTo) url.searchParams.set("dateTo", query.dateTo);
+    if (query.first !== undefined) url.searchParams.set("first", String(query.first));
+    if (query.max !== undefined) url.searchParams.set("max", String(query.max));
+    return this.requestUrl<Array<Record<string, unknown>>>("GET", url);
+  }
+
+  /** Like {@link request}, but for endpoints (e.g. multi-value query params) that need a pre-built URL. */
+  private async requestUrl<T = unknown>(
+    method: string,
+    url: URL,
+  ): Promise<{ status: number; data: T }> {
+    const token = await this.getToken();
+    const res = await fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new KeycloakError(
+        `Keycloak API ${method} ${url.pathname} failed with ${res.status}.`,
+        res.status,
+        body,
+      );
+    }
+    const text = await res.text();
+    const data = text ? (JSON.parse(text) as T) : (undefined as T);
+    return { status: res.status, data };
+  }
 }

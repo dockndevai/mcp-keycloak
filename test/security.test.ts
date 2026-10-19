@@ -93,6 +93,36 @@ describe("destructive gating", () => {
   });
 });
 
+describe("security/audit visibility tools (get_user_sessions, list_events)", () => {
+  it("are read-capability: available in read-only mode, realm-scoped, never dry-run", () => {
+    const p = makePolicy({ mode: "read-only", realmAllowlist: ["app"] });
+    expect(
+      p.guard({ tool: "get_user_sessions", capability: "read", realm: "app" }).dryRun,
+    ).toBe(false);
+    expect(p.guard({ tool: "list_events", capability: "read", realm: "app" }).dryRun).toBe(false);
+  });
+
+  it("respect the realm allowlist like every other read tool", () => {
+    const p = makePolicy({ mode: "admin", realmAllowlist: ["app"] });
+    expect(() =>
+      p.guard({ tool: "get_user_sessions", capability: "read", realm: "secret" }),
+    ).toThrow(/allowlist/);
+    expect(() =>
+      p.guard({ tool: "list_events", capability: "read", realm: "secret" }),
+    ).toThrow(/allowlist/);
+  });
+
+  it("remain readable even on a protected realm", () => {
+    const p = makePolicy({ mode: "admin" });
+    expect(() =>
+      p.guard({ tool: "get_user_sessions", capability: "read", realm: "master" }),
+    ).not.toThrow();
+    expect(() =>
+      p.guard({ tool: "list_events", capability: "read", realm: "master" }),
+    ).not.toThrow();
+  });
+});
+
 describe("dry run", () => {
   it("marks write operations as dry-run but not reads", () => {
     const p = makePolicy({ mode: "read-write", dryRun: true });

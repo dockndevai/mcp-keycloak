@@ -15,6 +15,7 @@ The design goal is **safe by default**: it starts read-only, scopes to an allowl
 - **Security flags** — realm allowlist, protected realms, delete gating, dry-run, and JSON audit logging (see below).
 - **Two auth strategies** — confidential-client service account (recommended) or admin username/password.
 - **Zero heavy dependencies** — a thin fetch-based Admin REST client, plus the MCP SDK and zod.
+- **Security/audit visibility** — `get_user_sessions` shows where a user is currently logged in; `list_events` surfaces login/auth events (LOGIN, LOGIN_ERROR, LOGOUT, …) for incident review. Both are read-only and realm-scoped like every other tool. Admin events (which can embed full resource representations, including client secrets) are intentionally not exposed.
 
 ## Security model
 
@@ -32,7 +33,7 @@ These layers are independent — for example `admin` mode with `KEYCLOAK_ALLOW_D
 
 ## Tools
 
-**Read** (`read-only`+): `list_realms`, `get_realm`, `list_users`, `get_user`, `count_users`, `list_clients`, `list_realm_roles`, `list_groups`
+**Read** (`read-only`+): `list_realms`, `get_realm`, `list_users`, `get_user`, `count_users`, `list_clients`, `list_realm_roles`, `list_groups`, `get_user_sessions`, `list_events`
 
 **Write** (`read-write`+): `create_user`, `update_user`, `reset_password`, `logout_user`
 
