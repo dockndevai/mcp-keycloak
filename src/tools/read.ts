@@ -31,14 +31,16 @@ export const readTools: ToolDef[] = [
     capability: "read",
     config: {
       title: "Get realm settings",
-      description: "Fetch the configuration of a single realm.",
+      description: "Fetch the configuration of a single realm. Secrets (SMTP password, codeSecret, identity-provider and LDAP credentials, secret-shaped attributes) are replaced with [REDACTED].",
       inputSchema: { realm: z.string().describe("Realm name") },
     },
     handler: async (args, { client, policy }) => {
       const realm = args.realm as string;
       policy.guard({ tool: "get_realm", capability: "read", realm });
       const { data } = await client.getRealm(realm);
-      return jsonResult(data);
+      // Keycloak masks smtpServer.password and identity-provider / LDAP secrets itself ("**********"), but the realm
+      // also carries codeSecret and free-form attributes; do not rely on the server's masking alone.
+      return jsonResult(redactSecrets(data));
     },
   },
   {
@@ -47,7 +49,7 @@ export const readTools: ToolDef[] = [
     config: {
       title: "List / search users",
       description:
-        "List users in a realm. Supports free-text search and pagination. Passwords and secrets are never returned by Keycloak.",
+        "List users in a realm. Supports free-text search and pagination. Secret-shaped attribute values and credentials are replaced with [REDACTED].",
       inputSchema: {
         realm: z.string().describe("Realm name"),
         search: z
@@ -66,7 +68,8 @@ export const readTools: ToolDef[] = [
         first: args.first as number | undefined,
         max: (args.max as number | undefined) ?? 50,
       });
-      return jsonResult(data);
+      // `attributes` is free-form and can hold secrets; `credentials` (if present) is dropped. See src/redact.ts.
+      return jsonResult(redactSecrets(data));
     },
   },
   {
@@ -74,7 +77,7 @@ export const readTools: ToolDef[] = [
     capability: "read",
     config: {
       title: "Get user by id",
-      description: "Fetch a single user representation by their Keycloak id.",
+      description: "Fetch a single user representation by their Keycloak id. Secret-shaped attribute values and credentials are replaced with [REDACTED].",
       inputSchema: {
         realm: z.string().describe("Realm name"),
         userId: z.string().describe("Keycloak user id (UUID)"),
@@ -84,7 +87,7 @@ export const readTools: ToolDef[] = [
       const realm = args.realm as string;
       policy.guard({ tool: "get_user", capability: "read", realm });
       const { data } = await client.getUser(realm, args.userId as string);
-      return jsonResult(data);
+      return jsonResult(redactSecrets(data));
     },
   },
   {
@@ -135,14 +138,14 @@ export const readTools: ToolDef[] = [
     capability: "read",
     config: {
       title: "List realm roles",
-      description: "List the realm-level roles defined in a realm.",
+      description: "List the realm-level roles defined in a realm. Secret-shaped attribute values are replaced with [REDACTED].",
       inputSchema: { realm: z.string().describe("Realm name") },
     },
     handler: async (args, { client, policy }) => {
       const realm = args.realm as string;
       policy.guard({ tool: "list_realm_roles", capability: "read", realm });
       const { data } = await client.listRealmRoles(realm);
-      return jsonResult(data);
+      return jsonResult(redactSecrets(data));
     },
   },
   {
@@ -150,7 +153,7 @@ export const readTools: ToolDef[] = [
     capability: "read",
     config: {
       title: "List groups",
-      description: "List groups in a realm.",
+      description: "List groups in a realm. Secret-shaped attribute values are replaced with [REDACTED].",
       inputSchema: {
         realm: z.string().describe("Realm name"),
         search: z.string().optional().describe("Optional search term"),
@@ -162,7 +165,7 @@ export const readTools: ToolDef[] = [
       const { data } = await client.listGroups(realm, {
         search: args.search as string | undefined,
       });
-      return jsonResult(data);
+      return jsonResult(redactSecrets(data));
     },
   },
 ];

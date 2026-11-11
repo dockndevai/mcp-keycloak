@@ -31,7 +31,11 @@ other privileged automation and grant it the least access it needs.
 
 - Credentials are read from environment variables and never logged.
 - `reset_password` never echoes the password back in its result.
-- `list_clients` redacts secret-bearing fields before they reach the model, deeply and by key name (`src/redact.ts`):
+- `list_clients`, `get_user`, `list_users`, `get_realm`, `list_realm_roles` and `list_groups` redact secret-bearing
+  fields before they reach the model, deeply and by key name (`src/redact.ts`; user, role, group and realm
+  `attributes` are free-form and can hold secrets, a user's `credentials` is dropped, and `get_realm` hides
+  `smtpServer.password`, `codeSecret`, identity-provider and LDAP secrets itself instead of relying on Keycloak's
+  `**********` masking):
   `secret`, `registrationAccessToken`, the previous secret kept during rotation
   (`attributes["client.secret.rotated"]`), SAML signing/encryption private keys, anything whose name ends in
   secret / password / credential(s) / private key / API key (including inside protocol-mapper configs and
@@ -39,8 +43,13 @@ other privileged automation and grant it the least access it needs.
   empty, and any string containing a PEM private key block. Replaced values read `[REDACTED]`; timestamps,
   lifespans, algorithms and booleans (for example `client.secret.creation.time`, `access.token.lifespan`,
   `clientAuthenticatorType`) are kept. This is name-based: a secret stored in a field with an innocuous name is
-  not detected. Other read tools (`get_user`, `list_users`, `get_realm`, `list_realm_roles`, `list_groups`)
-  return Keycloak's representation as is and rely on Keycloak not including credentials in it.
+  not detected (for example an attribute named `recovery.codes`). Ordinary attributes (phone, department, locale,
+  ...) and realm configuration such as `passwordPolicy`, authentication flow aliases and WebAuthn policy settings
+  stay readable. `count_users` and `list_realms` return no free-form fields.
+- **Error responses.** When Keycloak answers with an error, the response body shown to the model is passed through
+  the same redaction (JSON bodies by key; any body for PEM private keys, JWT-shaped strings, `Bearer` tokens and
+  `secret=` / `password:` style pairs) and only then cut to 800 characters, so a secret cannot survive as a partial
+  value at the cut.
 - **TLS verification.** `KEYCLOAK_TLS_REJECT_UNAUTHORIZED=false` disables certificate verification for requests
   to Keycloak only (a dedicated connection pool for this client), with a warning on stderr. It no longer
   changes the process-wide `NODE_TLS_REJECT_UNAUTHORIZED`, so other outbound connections (for example to the

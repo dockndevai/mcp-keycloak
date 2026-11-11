@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AppConfig } from "./config.js";
 import { KeycloakClient, KeycloakError } from "./keycloak/client.js";
 import { canonicalArgs, makeConfirmer } from "./elicit.js";
+import { redactErrorBody } from "./redact.js";
 import { GuardClient, loadGuardConfig } from "./guard.js";
 import { PolicyError, SecurityPolicy } from "./security.js";
 import { adminTools } from "./tools/admin.js";
@@ -56,15 +57,11 @@ function toErrorResult(err: unknown) {
   if (err instanceof PolicyError) {
     message = `Policy denied: ${err.message}`;
   } else if (err instanceof KeycloakError) {
-    message = `Keycloak error (${err.status}): ${err.message}${err.body ? `\n${truncate(err.body)}` : ""}`;
+    message = `Keycloak error (${err.status}): ${err.message}${err.body ? `\n${redactErrorBody(err.body)}` : ""}`;
   } else if (err instanceof Error) {
     message = err.message;
   } else {
     message = String(err);
   }
   return { content: [{ type: "text" as const, text: message }], isError: true };
-}
-
-function truncate(s: string, max = 800): string {
-  return s.length > max ? `${s.slice(0, max)}…` : s;
 }
