@@ -31,6 +31,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   configuration stay readable. To avoid hiding plain configuration, keys ending in `flow`, `mode` or `types` and
   `webAuthnPolicy*` keys (for example `resetCredentialsFlow`, `webAuthnPolicyPasswordless*`,
   `disableableCredentialTypes`) are now treated as non-secret by the redactor, `list_clients` included.
+- **Redactor tuning (`src/redact.ts`).** Key names are now matched word by word. It used to miss recovery
+  codes (`recovery.codes`, `recoveryCodes`, `recovery-authn-codes`, `backupCodes`), OTP / TOTP credential blobs
+  (`totp: {...}`, `otp`, `totpValue`) and a numeric `initialAccessToken`; these are now hidden (the user flag
+  `totp: false` and realm OTP settings such as `otpPolicyType` stay readable). `bindCredential`, `clientSecret`,
+  `registrationAccessToken`, `smtp.password` and dotted keys were already hidden and are now pinned by tests.
+  It also hid public endpoints because their key names contain "authorization" or "token":
+  `authorizationUrl`, `tokenUrl`, `token_endpoint` and similar fields are now readable when the value is an
+  http(s)/ldap(s) URL with no userinfo, no secret-named query/fragment parameter (`client_secret`,
+  `access_token`, `code`, `api_key`, ...) and no JWT/PEM content. A URL that does embed a credential is hidden under
+  any url/uri/endpoint-named key (including `jwksUrl`, which was previously passed through). Still name-based:
+  a secret under an innocuous key, or inside a URL path, is not detected (documented and tested).
+  Error bodies keep their stricter text pass and may still hide URLs.
 - **Keycloak error bodies are redacted before they reach the model.** The body of a failed request was appended
   to the tool error after only a length cut (800 characters). It now goes through the redactor first (JSON by key;
   PEM private keys, JWTs, `Bearer` tokens and `secret=…` / `password: …` pairs in any body) and is cut afterwards.

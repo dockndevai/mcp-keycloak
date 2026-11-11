@@ -42,10 +42,21 @@ other privileged automation and grant it the least access it needs.
   authorization settings), other token/secret/credential-named fields whose value is not a flag, number or
   empty, and any string containing a PEM private key block. Replaced values read `[REDACTED]`; timestamps,
   lifespans, algorithms and booleans (for example `client.secret.creation.time`, `access.token.lifespan`,
-  `clientAuthenticatorType`) are kept. This is name-based: a secret stored in a field with an innocuous name is
-  not detected (for example an attribute named `recovery.codes`). Ordinary attributes (phone, department, locale,
-  ...) and realm configuration such as `passwordPolicy`, authentication flow aliases and WebAuthn policy settings
-  stay readable. `count_users` and `list_realms` return no free-form fields.
+  `clientAuthenticatorType`) are kept. Key names are matched word by word (`recoveryCodes`, `recovery.codes` and
+  `recovery-authn-codes` are the same name): recovery / backup / scratch codes, `initialAccessToken`, and OTP / TOTP
+  credential blobs (a key ending in `otp` / `totp`, such as `totp: {...}` or `otpSecret`) are hidden, while the user
+  flag `totp: false` and realm OTP settings such as `otpPolicyType` stay readable.
+  **Endpoint URLs stay readable.** A field whose name ends in url / uri / endpoint (`authorizationUrl`, `tokenUrl`,
+  `userInfoUrl`, `token_endpoint`, `jwks_uri`, ...) is shown when its value is an http(s) or ldap(s) URL with no
+  userinfo (`user:pw@host`), no secret-named query or fragment parameter (`client_secret`, `access_token`, `code`,
+  `api_key`, ...) and no JWT- or PEM-shaped content; otherwise it is hidden, and that also applies to such a field
+  whose name is not otherwise secret-looking (`jwksUrl`). `secret`, `password` and `credential` fields are always
+  hidden whatever they hold. The redaction is name-based and is a safety net, not a guarantee: a secret stored in a
+  field with an innocuous name (for example `notes`, or an attribute called `emergency.access`) is not detected, and
+  neither is a secret embedded in a URL path (such as a webhook URL). Ordinary attributes (phone, department,
+  locale, ...) and realm configuration such as `passwordPolicy`, authentication flow aliases and WebAuthn policy
+  settings stay readable. `count_users` and `list_realms` return no free-form fields. Error bodies use a separate,
+  stricter text pass (below) and may hide URLs that the tools above would show.
 - **Error responses.** When Keycloak answers with an error, the response body shown to the model is passed through
   the same redaction (JSON bodies by key; any body for PEM private keys, JWT-shaped strings, `Bearer` tokens and
   `secret=` / `password:` style pairs) and only then cut to 800 characters, so a secret cannot survive as a partial
