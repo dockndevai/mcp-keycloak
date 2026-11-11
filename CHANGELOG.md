@@ -11,6 +11,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   60 s request timeout, and a timeout fell through to "approved" (the `KEYCLOAK_ALLOW_DELETE` gate had
   already passed). A prompt nobody answered therefore auto-approved a destructive operation. A timeout is
   now a refusal, and the wait defaults to 5 minutes.
+- **`list_clients` redacts secrets deeply.** It only removed the top-level `secret` key, although the docs said
+  secrets are stripped defensively. `registrationAccessToken`, the rotated secret
+  (`attributes["client.secret.rotated"]`), SAML private keys, secret-shaped attributes and mapper/authorization
+  config values, and PEM private key blocks reached the model. They are now replaced with `[REDACTED]` by a
+  conservative key-name matcher (`src/redact.ts`); timestamps, lifespans, algorithms, booleans and
+  `clientAuthenticatorType` are kept. Name-based: a secret under an innocuous key name is not detected.
+- **`KEYCLOAK_TLS_REJECT_UNAUTHORIZED=false` is scoped to Keycloak.** It set `NODE_TLS_REJECT_UNAUTHORIZED=0`,
+  which turned certificate verification off for every outbound TLS connection in the process (including the
+  laya-guard daemon call). It now uses a dedicated undici `Agent` with `rejectUnauthorized:false` for the
+  Keycloak client's own requests; the warning is unchanged. Adds `undici` (^7) as a runtime dependency.
 
 ### Added
 - **Approvals are bound to the exact action.** The prompt shows the tool, the full (secret-redacted)
