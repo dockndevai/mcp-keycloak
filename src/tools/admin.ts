@@ -30,7 +30,12 @@ export const adminTools: ToolDef[] = [
         destructive: true,
       });
       if (dryRun) return textResult(`[dry-run] Would delete user ${userId} in '${realm}'.`);
-      const ok = await confirm.confirm({ action: "delete user", target: userId, details: { realm } });
+      const ok = await confirm.confirm({
+        action: "delete user",
+        target: userId,
+        details: { realm },
+        probe: () => client.userVersion(realm, userId),
+      });
       if (!ok.approved) return textResult(`Deletion cancelled — ${ok.reason}.`);
       await client.deleteUser(realm, userId);
       return jsonResult({ deleted: true, realm, userId });

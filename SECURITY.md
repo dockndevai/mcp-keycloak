@@ -15,6 +15,13 @@ other privileged automation and grant it the least access it needs.
   realm you never want mutated to `KEYCLOAK_PROTECTED_REALMS`.
 - **Gate deletion explicitly.** `delete_*` tools require both `admin` mode and
   `KEYCLOAK_ALLOW_DELETE=true`.
+- **Require a human for destructive ops.** Set `KEYCLOAK_REQUIRE_HUMAN_APPROVAL=true` so `delete_user`,
+  `reset_password` and `logout_user` are refused when the client cannot show an approval prompt.
+  Each approval is bound to the exact tool and arguments (fingerprint; secrets such as the new password
+  are redacted from the prompt and the fingerprint) and to the target user's version (a hash of the user
+  representation without volatile fields such as `notBefore`, and without secret-looking fields; Keycloak
+  has no ETag); if the user changed while the human was deciding, the action is refused. Approval
+  receipts are written to the audit log (`"audit":"approval"`, with `approvedBy` = `human` or `flag-only`).
 - **Prefer an allowlist.** Set `KEYCLOAK_REALM_ALLOWLIST` so the agent can only
   touch the realms you intend.
 - **Keep the audit log on.** `KEYCLOAK_AUDIT_LOG=true` (default) writes a JSON
