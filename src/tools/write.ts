@@ -95,7 +95,12 @@ export const writeTools: ToolDef[] = [
         return textResult(
           `[dry-run] Would set a ${temporary ? "temporary" : "permanent"} password for user ${userId} in '${realm}'.`,
         );
-      const ok = await confirm.confirm({ action: "reset user password", target: userId, details: { realm } });
+      const ok = await confirm.confirm({
+        action: "reset user password",
+        target: userId,
+        details: { realm },
+        probe: () => client.userVersion(realm, userId),
+      });
       if (!ok.approved) return textResult(`Password reset cancelled — ${ok.reason}.`);
       await client.resetPassword(realm, userId, args.password as string, temporary);
       // Never echo the password back.
@@ -118,7 +123,12 @@ export const writeTools: ToolDef[] = [
       const userId = args.userId as string;
       const { dryRun } = policy.guard({ tool: "logout_user", capability: "write", realm });
       if (dryRun) return textResult(`[dry-run] Would revoke all sessions for user ${userId} in '${realm}'.`);
-      const ok = await confirm.confirm({ action: "log user out of all sessions", target: userId, details: { realm } });
+      const ok = await confirm.confirm({
+        action: "log user out of all sessions",
+        target: userId,
+        details: { realm },
+        probe: () => client.userVersion(realm, userId),
+      });
       if (!ok.approved) return textResult(`Logout cancelled — ${ok.reason}.`);
       await client.logoutUser(realm, userId);
       return jsonResult({ loggedOut: true, realm, userId });

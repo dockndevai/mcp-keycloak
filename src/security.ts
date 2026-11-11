@@ -46,6 +46,8 @@ export interface SecurityConfig {
   dryRun: boolean;
   /** Emit a structured audit line to stderr for every guarded operation. */
   auditLog: boolean;
+  /** Refuse destructive ops that no human can approve (no elicitation support) instead of trusting the flags alone. */
+  requireHumanApproval: boolean;
 }
 
 /** Thrown when the policy rejects an operation. Surfaced to the model as an error. */

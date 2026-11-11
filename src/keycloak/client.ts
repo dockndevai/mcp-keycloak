@@ -5,6 +5,7 @@
  * and a thin wrapper keeps the dependency footprint (and audit surface) tiny.
  * Access tokens are cached and refreshed automatically before expiry.
  */
+import { createHash } from "node:crypto";
 import type { KeycloakConnection } from "../config.js";
 
 interface TokenState {
@@ -22,6 +23,30 @@ export interface UserRepresentation {
   emailVerified?: boolean;
   attributes?: Record<string, string[]>;
   [k: string]: unknown;
+}
+
+/**
+ * Fields of a user representation that change without the user itself changing (or that are
+ * derived/per-request), so they must not feed the version token. `notBefore` moves on session
+ * revocation; `access` / `disableableCredentialTypes` / `totp` are computed by the server.
+ */
+const VOLATILE_USER_FIELDS = new Set(["notBefore", "access", "disableableCredentialTypes", "totp", "credentials"]);
+
+/** Keys that look like secrets are dropped entirely: a secret must never be hashed or displayed. */
+const SECRET_KEY = /pass(word|wd)?|secret|token|api[-_]?key|credential|authorization|private[-_]?key|bearer|cookie/i;
+
+/** Deterministic copy of `value` with sorted keys and secret-looking keys removed. */
+function stripForHash(value: unknown, depth = 0): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (depth >= 8) return "[depth-limit]";
+  if (Array.isArray(value)) return value.map((v) => stripForHash(v, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(value as Record<string, unknown>).sort()) {
+    if (SECRET_KEY.test(k)) continue;
+    const v = (value as Record<string, unknown>)[k];
+    if (v !== undefined) out[k] = stripForHash(v, depth + 1);
+  }
+  return out;
 }
 
 export class KeycloakError extends Error {
@@ -152,6 +177,30 @@ export class KeycloakClient {
       "GET",
       `/realms/${encodeURIComponent(realm)}/users/${encodeURIComponent(id)}`,
     );
+  }
+
+  /**
+   * Version token for a user, pinned across an approval prompt. Keycloak exposes no ETag, so this
+   * is a hash of the user representation minus volatile (`notBefore`, `access`, `totp`, …) and
+   * secret-looking fields: id, username, email, names, enabled/emailVerified, createdTimestamp,
+   * attributes, required actions, federation link. Returns undefined if the user does not exist;
+   * any other failure throws. Limits: credentials and role/group membership are not covered, and a
+   * user recreated with an identical id and identical fields would not be distinguishable.
+   */
+  async userVersion(realm: string, id: string): Promise<string | undefined> {
+    let user: UserRepresentation | undefined;
+    try {
+      user = (await this.getUser(realm, id)).data;
+    } catch (err) {
+      if (err instanceof KeycloakError && err.status === 404) return undefined;
+      throw err;
+    }
+    if (!user) return undefined;
+    const stable: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(user)) {
+      if (!VOLATILE_USER_FIELDS.has(k)) stable[k] = v;
+    }
+    return createHash("sha256").update(JSON.stringify(stripForHash(stable))).digest("hex").slice(0, 12);
   }
 
   countUsers(realm: string, query: Record<string, string | undefined>) {

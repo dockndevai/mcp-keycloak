@@ -87,6 +87,7 @@ export function loadConfig(): AppConfig {
       allowDelete: bool("KEYCLOAK_ALLOW_DELETE", false),
       dryRun: bool("KEYCLOAK_DRY_RUN", false),
       auditLog: bool("KEYCLOAK_AUDIT_LOG", true),
+      requireHumanApproval: bool("KEYCLOAK_REQUIRE_HUMAN_APPROVAL", false),
     },
   };
 }
