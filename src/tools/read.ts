@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { redactSecrets } from "../redact.js";
 import type { ToolDef } from "./types.js";
 import { jsonResult } from "./types.js";
 
@@ -109,7 +110,9 @@ export const readTools: ToolDef[] = [
     capability: "read",
     config: {
       title: "List clients",
-      description: "List OAuth/OIDC clients configured in a realm. Client secrets are not included.",
+      description:
+        "List OAuth/OIDC clients configured in a realm. Client secrets, registration access tokens, rotated secrets, private keys " +
+        "and other secret-shaped fields are replaced with [REDACTED].",
       inputSchema: {
         realm: z.string().describe("Realm name"),
         clientId: z.string().optional().describe("Filter by clientId"),
@@ -121,11 +124,9 @@ export const readTools: ToolDef[] = [
       const { data } = await client.listClients(realm, {
         clientId: args.clientId as string | undefined,
       });
-      // Strip anything secret-shaped defensively.
-      const safe = (data ?? []).map((c) => {
-        const { secret, ...rest } = c as Record<string, unknown>;
-        return rest;
-      });
+      // Strip anything secret-shaped, deeply (not just the top-level `secret`): registrationAccessToken,
+      // rotated secrets, SAML private keys, secret-shaped attributes and mapper configs. See src/redact.ts.
+      const safe = redactSecrets(data ?? []);
       return jsonResult(safe);
     },
   },

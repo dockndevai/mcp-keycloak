@@ -6,6 +6,7 @@
  * Access tokens are cached and refreshed automatically before expiry.
  */
 import { createHash } from "node:crypto";
+import { Agent, fetch as undiciFetch } from "undici";
 import type { KeycloakConnection } from "../config.js";
 
 interface TokenState {
@@ -62,16 +63,29 @@ export class KeycloakError extends Error {
 
 export class KeycloakClient {
   private token?: TokenState;
+  /**
+   * Set only when KEYCLOAK_TLS_REJECT_UNAUTHORIZED=false. Certificate checks are relaxed for requests made
+   * through this dispatcher (i.e. to Keycloak) and nothing else in the process: setting
+   * NODE_TLS_REJECT_UNAUTHORIZED=0 would switch verification off for every outbound TLS connection.
+   */
+  private readonly insecureDispatcher?: Agent;
 
   constructor(private readonly conn: KeycloakConnection) {
     if (!conn.tlsRejectUnauthorized) {
-      // Node's fetch has no per-request TLS toggle; this is the documented
-      // escape hatch. It is intentionally opt-in and loudly warned about.
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+      // Opt-in and loudly warned about; scoped to this client's own requests.
+      this.insecureDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
       process.stderr.write(
         "[keycloak-mcp] WARNING: TLS certificate verification is DISABLED.\n",
       );
     }
+  }
+
+  /** fetch for Keycloak requests: the global fetch, or (verification off) undici's with the relaxed dispatcher. */
+  private doFetch(input: string | URL, init: RequestInit): Promise<Response> {
+    if (!this.insecureDispatcher) return fetch(input, init);
+    // Same undici for the Agent and the fetch that uses it (a dispatcher from a different undici build
+    // than the one behind the global fetch is not guaranteed to be compatible).
+    return undiciFetch(input, { ...init, dispatcher: this.insecureDispatcher } as Parameters<typeof undiciFetch>[1]) as unknown as Promise<Response>;
   }
 
   private async authenticate(): Promise<TokenState> {
@@ -89,7 +103,7 @@ export class KeycloakClient {
       form.set("password", auth.password);
     }
 
-    const res = await fetch(url, {
+    const res = await this.doFetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: form.toString(),
@@ -130,7 +144,7 @@ export class KeycloakClient {
       if (v !== undefined) url.searchParams.set(k, String(v));
     }
 
-    const res = await fetch(url, {
+    const res = await this.doFetch(url, {
       method,
       headers: {
         Authorization: `Bearer ${token}`,

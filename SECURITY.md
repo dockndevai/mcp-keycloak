@@ -31,7 +31,20 @@ other privileged automation and grant it the least access it needs.
 
 - Credentials are read from environment variables and never logged.
 - `reset_password` never echoes the password back in its result.
-- `list_clients` strips client secrets from responses defensively.
+- `list_clients` redacts secret-bearing fields before they reach the model, deeply and by key name (`src/redact.ts`):
+  `secret`, `registrationAccessToken`, the previous secret kept during rotation
+  (`attributes["client.secret.rotated"]`), SAML signing/encryption private keys, anything whose name ends in
+  secret / password / credential(s) / private key / API key (including inside protocol-mapper configs and
+  authorization settings), other token/secret/credential-named fields whose value is not a flag, number or
+  empty, and any string containing a PEM private key block. Replaced values read `[REDACTED]`; timestamps,
+  lifespans, algorithms and booleans (for example `client.secret.creation.time`, `access.token.lifespan`,
+  `clientAuthenticatorType`) are kept. This is name-based: a secret stored in a field with an innocuous name is
+  not detected. Other read tools (`get_user`, `list_users`, `get_realm`, `list_realm_roles`, `list_groups`)
+  return Keycloak's representation as is and rely on Keycloak not including credentials in it.
+- **TLS verification.** `KEYCLOAK_TLS_REJECT_UNAUTHORIZED=false` disables certificate verification for requests
+  to Keycloak only (a dedicated connection pool for this client), with a warning on stderr. It no longer
+  changes the process-wide `NODE_TLS_REJECT_UNAUTHORIZED`, so other outbound connections (for example to the
+  laya-guard daemon) keep verifying certificates. Leave it on (the default) for anything but a throwaway lab.
 
 ## Reporting a vulnerability
 
