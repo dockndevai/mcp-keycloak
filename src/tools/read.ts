@@ -164,4 +164,59 @@ export const readTools: ToolDef[] = [
       return jsonResult(data);
     },
   },
+  {
+    name: "get_user_sessions",
+    capability: "read",
+    config: {
+      title: "Get active sessions for a user",
+      description:
+        "List the active SSO sessions for a single user: session id, IP address, start/last-access time, and which clients are attached. Useful for auditing where a user is currently logged in or confirming a logout took effect. No tokens or credentials are included (Keycloak never returns them here).",
+      inputSchema: {
+        realm: z.string().describe("Realm name"),
+        userId: z.string().describe("Keycloak user id (UUID)"),
+      },
+    },
+    handler: async (args, { client, policy }) => {
+      const realm = args.realm as string;
+      policy.guard({ tool: "get_user_sessions", capability: "read", realm });
+      const { data } = await client.getUserSessions(realm, args.userId as string);
+      return jsonResult(data);
+    },
+  },
+  {
+    name: "list_events",
+    capability: "read",
+    config: {
+      title: "List login/auth events",
+      description:
+        "List realm login events (LOGIN, LOGIN_ERROR, LOGOUT, CODE_TO_TOKEN, etc.) for security monitoring and incident review. Requires the realm's 'Save events' setting to be enabled in Keycloak (Realm settings → Events) — otherwise this returns an empty list. Only user-facing login events are exposed; admin events (which can embed full resource representations, including client secrets) are intentionally not exposed by this server.",
+      inputSchema: {
+        realm: z.string().describe("Realm name"),
+        type: z
+          .array(z.string())
+          .optional()
+          .describe("Filter by event type(s), e.g. [\"LOGIN\", \"LOGIN_ERROR\"]"),
+        client: z.string().optional().describe("Filter by client id"),
+        userId: z.string().optional().describe("Filter by Keycloak user id (UUID)"),
+        dateFrom: z.string().optional().describe("ISO date (yyyy-MM-dd), inclusive lower bound"),
+        dateTo: z.string().optional().describe("ISO date (yyyy-MM-dd), inclusive upper bound"),
+        first: z.number().int().min(0).optional().describe("Pagination offset"),
+        max: z.number().int().min(1).max(500).optional().describe("Max results (default 50)"),
+      },
+    },
+    handler: async (args, { client, policy }) => {
+      const realm = args.realm as string;
+      policy.guard({ tool: "list_events", capability: "read", realm });
+      const { data } = await client.listEvents(realm, {
+        type: args.type as string[] | undefined,
+        client: args.client as string | undefined,
+        user: args.userId as string | undefined,
+        dateFrom: args.dateFrom as string | undefined,
+        dateTo: args.dateTo as string | undefined,
+        first: args.first as number | undefined,
+        max: (args.max as number | undefined) ?? 50,
+      });
+      return jsonResult(data);
+    },
+  },
 ];
