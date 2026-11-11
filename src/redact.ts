@@ -15,6 +15,8 @@
  *    value cannot hold a secret (boolean, number, null, empty, "true"/"false"). That keeps timestamps, lifespans,
  *    algorithms and feature flags readable while a token or key string under such a name is still hidden.
  * Independently of the key, a string containing a PEM private key block is replaced.
+ *
+ * `redactErrorBody` applies the same idea to the free text of a Keycloak error response.
  */
 
 export const REDACTED = "[REDACTED]";
@@ -24,8 +26,10 @@ const HARD_KEY =
 const SOFT_KEY = /secret|token|credential|passw(or)?d|private[\s._-]?key|api[\s._-]?key|authorization|bearer|cookie/i;
 /** Keys that match the patterns by wording only and hold plain configuration. */
 const SAFE_KEYS = new Set(["passwordpolicy", "clientauthenticatortype"]);
+/** `webAuthnPolicy*` / `webAuthnPolicyPasswordless*` realm settings are WebAuthn configuration; "Passwordless" is not a password. */
+const SAFE_PREFIX = /^webauthnpolicy/i;
 /** Soft-key names ending in one of these hold configuration (a timestamp, a duration, an algorithm, a flag). */
-const BENIGN_SUFFIX = /(time|period|lifespan|timeout|expiration|expiry|alg|algorithm|type|method|enabled)$/i;
+const BENIGN_SUFFIX = /(time|period|lifespan|timeout|expiration|expiry|alg|algorithm|type|types|method|enabled|flow|mode)$/i;
 const PEM_PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY-----/;
 const MAX_DEPTH = 12;
 
@@ -48,7 +52,7 @@ function walk(value: unknown, softKey: boolean, depth: number): unknown {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
     if (v === undefined) continue;
-    if (SAFE_KEYS.has(k.toLowerCase())) {
+    if (SAFE_KEYS.has(k.toLowerCase()) || SAFE_PREFIX.test(k)) {
       out[k] = walk(v, false, depth + 1);
     } else if (HARD_KEY.test(k)) {
       out[k] = REDACTED;
@@ -62,4 +66,41 @@ function walk(value: unknown, softKey: boolean, depth: number): unknown {
 /** Deep copy of `value` with secret-bearing fields replaced by "[REDACTED]". */
 export function redactSecrets<T>(value: T): T {
   return walk(value, false, 0) as T;
+}
+
+/** Largest slice of a Keycloak error body that is passed on to the model. */
+export const MAX_ERROR_BODY = 800;
+
+const TEXT_RULES: Array<[RegExp, string]> = [
+  [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(-----END [A-Z ]*PRIVATE KEY-----|$)/g, REDACTED],
+  // JWT-shaped strings (access / refresh / id / action tokens).
+  [/\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]*/g, REDACTED],
+  [/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, `Bearer ${REDACTED}`],
+  // key=value / key: value / "key":"value" where the key names a secret (form bodies, query strings, plain text).
+  [
+    /((?:secret|passw(?:or)?d|token|credential|api[\s._-]?key|private[\s._-]?key|authorization)[\w.-]*["']?\s*[=:]\s*["']?)(?:\[REDACTED\]|[^\s"'&,;}\]]+)/gi,
+    `$1${REDACTED}`,
+  ],
+];
+
+function scrubText(s: string): string {
+  return TEXT_RULES.reduce((acc, [re, to]) => acc.replace(re, to), s);
+}
+
+/**
+ * A Keycloak error response body made safe to show the model: a JSON body goes through `redactSecrets`
+ * (key-based), every body then has PEM private keys, JWT-shaped strings, `Bearer` tokens and `secret=…` /
+ * `password: …` style pairs replaced, and only after that is it cut to `max` characters, so a secret that
+ * straddles the cut cannot survive as a partial value. Name- and shape-based, like `redactSecrets`.
+ */
+export function redactErrorBody(body: string, max = MAX_ERROR_BODY): string {
+  let text = body;
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed !== null && typeof parsed === "object") text = JSON.stringify(redactSecrets(parsed));
+  } catch {
+    // not JSON: handled as text below
+  }
+  const safe = scrubText(text);
+  return safe.length > max ? `${safe.slice(0, max)}…` : safe;
 }

@@ -24,6 +24,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   which turned certificate verification off for every outbound TLS connection in the process (including the
   laya-guard daemon call). It now uses a dedicated undici `Agent` with `rejectUnauthorized:false` for the
   Keycloak client's own requests; the warning is unchanged. Adds `undici` (^7) as a runtime dependency.
+- **The other read tools redact secrets too.** `get_user`, `list_users`, `list_realm_roles` and `list_groups`
+  returned Keycloak's JSON untouched, so a secret in a free-form `attributes` entry reached the model; `get_realm`
+  relied on Keycloak's own masking (`codeSecret`, secrets in identity-provider / LDAP config, free-form realm
+  attributes). All five now go through the deep redactor used by `list_clients`; ordinary attributes and realm
+  configuration stay readable. To avoid hiding plain configuration, keys ending in `flow`, `mode` or `types` and
+  `webAuthnPolicy*` keys (for example `resetCredentialsFlow`, `webAuthnPolicyPasswordless*`,
+  `disableableCredentialTypes`) are now treated as non-secret by the redactor, `list_clients` included.
+- **Keycloak error bodies are redacted before they reach the model.** The body of a failed request was appended
+  to the tool error after only a length cut (800 characters). It now goes through the redactor first (JSON by key;
+  PEM private keys, JWTs, `Bearer` tokens and `secret=…` / `password: …` pairs in any body) and is cut afterwards.
 
 ### Added
 - **Approvals are bound to the exact action.** The prompt shows the tool, the full (secret-redacted)
