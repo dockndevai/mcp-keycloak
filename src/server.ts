@@ -18,7 +18,7 @@ export function buildServer(config: AppConfig): { server: McpServer; enabled: st
   const client = new KeycloakClient(config.connection);
   const server = new McpServer({
     name: "mcp-keycloak",
-    version: "0.4.0",
+    version: "0.4.1",
   });
   const guard = new GuardClient(loadGuardConfig());
   const confirmer = makeConfirmer(server, {

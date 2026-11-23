@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-11-23
+
+### Maintenance
+- Bumped `vitest` from 5.1.0 to 5.1.1 (patch, within existing `^5.1.0` range) as part of routine dependency maintenance.
+- `npm audit` shows 2 moderate advisories (`@hono/node-server`, `hono` — transitive dev/build tooling) with no high/critical severity; left unaddressed since no high/critical fix is required. `undici` has a major version available (7.30.2 -> 8.13.1) which was skipped as out of scope for a patch release.
+
 ## [0.4.0] - 2026-11-11
 
 ### Security
